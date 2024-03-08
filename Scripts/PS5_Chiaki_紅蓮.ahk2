@@ -1,0 +1,165 @@
+#SingleInstance Force
+#Requires AutoHotkey v2.0
+
+;Timings in miliseconds
+movingTimeWithRunning := 7000
+questTime := 260000 
+loadingTimeQuest := 7000 ;You might need to adjust this if your PC is loading the quest longer than 7 seconds
+loadingTimeTown := 10000 ;same with time for loading back into town, but the generous spam time should be okay with it
+spamTime := 27000
+
+
+UniqueID := WinExist("ahk_class Qt5152QWindowIcon")
+;
+; O = Backspace
+; X = 
+; 三角 = C
+; 方塊 = \
+; 左搖桿 : Ins Del [ ] 
+; 右搖桿 : PgUp PgDown - =
+; R1:3 R2:4 R3:6
+; L1:2 L2:1 L3:5
+; D-Pad : Up Down Right Left
+
+WM_KEYDOWN := 0x100
+WM_KEYUP := 0x101
+WM_COMMAND := 0x111
+WM_CHAR  := 0x102
+KEY_1_L2 := 0x31
+KEY_2_l1 := 0x32
+KEY_5_L3 := 0x35
+KEY_6_R3 := 0x36
+
+$F1::{
+	loop{
+		l2check := 0
+		TeleportToQuestCounter()
+		GoToQuestCounterAndGetSlimepedeQuest()
+		EmbarkOnQuest()
+
+		;Loading quest
+		Sleep loadingTimeQuest
+
+		;wait for quest to end
+		startTime := A_TickCount
+
+		; 按住l1 l2
+		;SendMessage WM_KEYDOWN, KEY_1, 0, UniqueID
+		;SendMessage WM_KEYDOWN, KEY_2, 0, UniqueID
+
+		Loop {
+			MoveCharacterAndShoot()
+			l2check := l2check + 1
+			if(Mod(l2check, 40) = 1){
+				SetKeyDelay 10, 10
+				ControlSend "{1}", UniqueID
+			}
+		} Until (A_TickCount - startTime > questTime)
+		ClearKeys()
+
+		;wait for results to show up
+		Sleep 15000
+
+		;Spoms LMB to get through menus faster
+		startTime := A_TickCount
+		Loop {
+			SetKeyDelay 10, 10
+			ControlSend "{Enter}", UniqueID
+			Sleep 300
+		} Until (A_TickCount - startTime > spamTime)
+		ClearKeys()
+
+		;wait for loading and to make sure everything's synced
+		Sleep loadingTimeTown
+	}
+}
+
+TeleportToQuestCounter(){
+
+	SetKeyDelay 10, 50
+	ControlSend "{1}", UniqueID
+	Sleep 4000
+
+	SetKeyDelay 10, 200
+	ControlSend "{Enter}", UniqueID
+	Sleep 2000
+
+	ControlSend "{Enter}", UniqueID
+	Sleep 3000
+
+	SetKeyDelay 10, 1000
+	ControlSend "{Ins}", UniqueID
+	Sleep 200
+}
+
+GoToQuestCounterAndGetSlimepedeQuest(){
+	
+	; 按三角叫出任務視窗
+	SetKeyDelay 10, 200
+	ControlSend "{C}", UniqueID
+	Sleep 4000
+
+	SetKeyDelay 10, 50
+	ControlSend "{Enter}", UniqueID
+	Sleep 1500
+
+	ControlSend "{Enter}", UniqueID
+	Sleep 1500
+
+	ControlSend "{Del}", UniqueID
+	Sleep 1000
+
+	ControlSend "{Enter}", UniqueID
+	Sleep 1500
+
+	ControlSend "{Enter}", UniqueID
+	Sleep 1500
+
+	ControlSend "{Enter}", UniqueID
+	Sleep 3000
+}
+
+EmbarkOnQuest(){
+	; 確認開始任務 按方塊叫出確認視窗
+	SetKeyDelay 10, 50
+	ControlSend "{\}", UniqueID
+	Sleep 3000
+
+	SetKeyDelay 10, 200
+	ControlSend "{Enter}", UniqueID
+}
+
+
+
+MoveCharacterAndShoot(){
+	; 亂走亂開槍
+    SetKeyDelay 10, 10
+
+	ControlSend "{C}", UniqueID
+  	Sleep 10
+
+	ControlSend "{Backspace}", UniqueID
+  	Sleep 10
+	
+	; 放大招!! ControlSend無法組合鍵，改PostMessage
+	PostMessage WM_KEYDOWN, KEY_5_L3, 0, UniqueID
+	PostMessage WM_KEYDOWN, KEY_6_R3, 0, UniqueID
+	Sleep 10
+	PostMessage WM_KEYUP, KEY_5_L3, 0, UniqueID
+	PostMessage WM_KEYUP, KEY_6_R3, 0, UniqueID
+	Sleep 10
+}
+
+
+ClearKeys(){
+	; ClearKeys 改用 SendMessage 以確保按鍵被釋放，避免卡鍵
+	;ControlSend "{Ins}", UniqueID
+	;Sleep 200
+	;ControlSend "{Del}", UniqueID
+	;Sleep 200
+}
+
+$+esc::{
+	ClearKeys()
+	exitapp
+}
